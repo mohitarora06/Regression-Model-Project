@@ -1,0 +1,68 @@
+---
+title: "Best Fit Model Selection"
+output: html_document
+---
+##Initial Preprocessing and Investigation
+
+Loading the data and seeing how the data is related to each other by using GGally package in R. This plot shows the correlation between various variables.
+```{r, echo = TRUE, out.width = '1000px', dpi=200}
+library(datasets)
+data("mtcars")
+
+library(GGally)
+library(ggplot2)
+g <- ggpairs(mtcars, lower = list(continuous = "smooth"), params = c(binwidth = 1))
+g <- g + theme(axis.text.x = element_text(angle = 90, hjust = 1), axis.text.y = element_text(angle = 90, hjust = 1))
+g
+
+#Changing data to include "Automatic" and "Manual" instead of 0 and 1
+mtcars$am <- ifelse(mtcars$am == 0, "Automatic", "Manual")
+```
+
+##Modeling 
+
+Now ploting the data to see which one has better effect on Mileage, automatic or manual transmission
+
+```{r, echo = TRUE}
+boxplot(mtcars$mpg ~ mtcars$am, col = "steelblue", ylab = "Mileage", xlab = "Transmission Type")
+```
+
+As it can be clearly seen from the plot that Manual transmission cars have better performance than Automatic transmission cars. But this is only when taking Transmission as the criteria and keeping other factors constant. We need to include other factors also to see wehther transmission is only the major factor or not. 
+
+First we will consider how MPG varies when all the variables are included into the model. 
+```{r, echo = TRUE}
+allDataFit <- lm(data = mtcars, mpg ~ .)
+summary(allDataFit)$coef
+```
+
+From the above summary of coefficients, it can be easily said that mileage depends on wt and transmission, majorly, but this cant be said with 100% surety as this relation is computed with taking all the coefficients into consideration which can lead to overfitting of the data. 
+
+Further if we try to fit linear model between mileage and transmission and see what it shows:-
+
+```{r, echo - TRUE}
+fit <- lm(mpg ~ am, data = mtcars)
+summary(fit)
+```
+
+From the summary we can clearly see that Manual transmission cars give more mileage than Automatic tranmission cars as the $\mu$ value for Manual cars is 7.245 more than Automatic. But as we can see from summary that $R^2$ value is approximately 35%, which implies that this model only captures 35% of the total variance, so we need to further investigate with other variables as well. 
+
+So now we fit various models with the step function to find out the best modeling variables. As this function tries to find out the best variables that define this model using steps in decreasing order of the number of variables present in the data.
+
+```{r, echo = TRUE}
+bestFit <- step(lm(data = mtcars, mpg ~.), trace = 0)
+summary(bestFit)
+```
+
+As we can see from the summary that the variables which can be used to fit the best model are wt, qsec and am. So not only weight and transmission are important factors which was seen from the above mulitvariable model fit but qsec also plays a major role. $R^2$ value is also approximately 85% percent which means that these three variables define the maximum variance. 
+
+##Appendix
+
+###Conclusion
+As it can be seen that mileage  not only depends on the type of transmission of the car but on other factors as well. Further we plot the residual graphs below:- 
+```{r, echo = TRUE}
+#Plotting residual graphs
+par(mfrow = c(2,2))
+plot(bestFit)
+```
+
+From the first plot between Residuals and Fitted values, we can see that there isn't any abnormal variance between the fitted values and residuals to show that the model doesn't fit. So this plot shows that this model is a good fit. Further more, from the last plot we can find out whether there are any residuals which has high levarage on the regression line to impact the analysis and we can see that there is no such point in the data which suggests this kind of behaviour. 
